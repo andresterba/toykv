@@ -60,10 +60,10 @@ impl<'a> Parser<'a> {
 
                 value.typ = get_command_type(cmd_type);
 
-                // we double the size here is each value is always in the format:
+                // we double the size here as each value is always in the format:
                 // $5 hello
-                // $5 -> string with size of 5 will follow
-                // hello -> the actual value
+                // $5: string with size of 5 will follow
+                // hello: the actual value
                 let size = size.parse::<usize>().unwrap() * 2;
 
                 array_size = Some(size);
