@@ -10,6 +10,7 @@ use store::Store;
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
     let mut store = store::MapStore::new();
+    store.load();
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
