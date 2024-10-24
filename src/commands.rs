@@ -18,9 +18,27 @@ impl<'a, T: Store> CommandHandler<'a, T> {
                 self.handle_ping(value.array[3].to_string());
             }
             "set" => {
+                if value.array.len() != 6 {
+                    self.stream
+                        .write_all(
+                            "-ERR wrong number of arguments for 'set' command\r\n".as_bytes(),
+                        )
+                        .unwrap();
+                    return;
+                }
+
                 self.handle_set(value.array[3].to_string(), value.array[5].to_string());
             }
             "get" => {
+                if value.array.len() != 4 {
+                    self.stream
+                        .write_all(
+                            "-ERR wrong number of arguments for 'get' command\r\n".as_bytes(),
+                        )
+                        .unwrap();
+                    return;
+                }
+
                 self.handle_get(value.array[3].to_string());
             }
             _ => {}
@@ -48,13 +66,20 @@ impl<'a, T: Store> CommandHandler<'a, T> {
     fn handle_get(&mut self, key: String) {
         let value = self.store.get(key);
 
-        let mut prefix = String::from("+");
+        match value {
+            Some(v) => {
+                let mut prefix = String::from("+");
 
-        prefix.push_str(&value.as_str());
-        prefix.push_str("\r\n");
+                prefix.push_str(&v.as_str());
+                prefix.push_str("\r\n");
 
-        let value_to_write = prefix.as_str();
+                let value_to_write = prefix.as_str();
 
-        self.stream.write_all(value_to_write.as_bytes()).unwrap();
+                self.stream.write_all(value_to_write.as_bytes()).unwrap();
+            }
+            None => {
+                self.stream.write_all("$-1\r\n".as_bytes()).unwrap();
+            }
+        }
     }
 }
