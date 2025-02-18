@@ -33,16 +33,15 @@ pub fn get_command_type(cmd_typ: &str) -> Commands {
     }
 }
 
-pub struct Parser<'a> {
-    stream: &'a TcpStream,
-}
+#[derive(Debug, Clone, Copy)]
+pub struct Parser {}
 
-impl<'a> Parser<'a> {
-    pub fn new(stream: &'a TcpStream) -> Parser<'a> {
-        Parser { stream }
+impl Parser {
+    pub fn new() -> Parser {
+        Parser {}
     }
-    pub fn parse(self) -> Value {
-        let buf_reader = BufReader::new(self.stream);
+    pub fn parse(self, stream: &TcpStream) -> Value {
+        let buf_reader = BufReader::new(stream);
 
         let mut array_size: Option<usize> = None;
         let mut counter = 0;

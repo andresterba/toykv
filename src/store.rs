@@ -41,7 +41,6 @@ impl Store for MapStore {
 
     fn persist(&self, key: String, value: String) {
         let kv_pair = format!("{}={}", key, value);
-
         let file = OpenOptions::new().write(true).append(true).open(FILE_NAME);
 
         match file {
@@ -77,5 +76,27 @@ impl Store for MapStore {
                 eprintln!("Couldn't open file");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_1() {
+        let mut store = MapStore::new();
+        store.set("key".to_string(), "value".to_string());
+        let value = store.get("key".to_string());
+        assert_eq!(value, Some(&"value".to_string()));
+    }
+
+    #[test]
+    fn test_2() {
+        let mut store = MapStore::new();
+        store.set("key".to_string(), "value".to_string());
+        store.set("key2".to_string(), "value2".to_string());
+        let value = store.get("key2".to_string());
+        assert_eq!(value, Some(&"value2".to_string()));
     }
 }
