@@ -1,9 +1,21 @@
-use std::{io::Write, net::TcpStream};
+use std::{io::Write, net::TcpStream, str::FromStr};
+
+use strum_macros::EnumString;
 
 use crate::{parser, store::Store};
 
 pub struct CommandHandler<'a, T: Store> {
     store: &'a mut T,
+}
+
+#[derive(EnumString, Debug)]
+enum CommandType {
+    #[strum(ascii_case_insensitive)]
+    Ping,
+    #[strum(ascii_case_insensitive)]
+    Set,
+    #[strum(ascii_case_insensitive)]
+    Get,
 }
 
 impl<'a, T: Store> CommandHandler<'a, T> {
@@ -12,35 +24,49 @@ impl<'a, T: Store> CommandHandler<'a, T> {
     }
 
     pub fn handle_command(&mut self, mut stream: TcpStream, command: String, value: parser::Value) {
-        match command.as_str() {
-            "ping" => {
-                self.handle_ping(stream, value.array[3].to_string());
-            }
-            "set" => {
-                if value.array.len() != 6 {
-                    stream
-                        .write_all(
-                            "-ERR wrong number of arguments for 'set' command\r\n".as_bytes(),
-                        )
-                        .unwrap();
-                    return;
-                }
+        let command_variant = CommandType::from_str(command.as_str());
+        match command_variant {
+            Ok(command) => {
+                match command {
+                    CommandType::Ping => {
+                        self.handle_ping(stream, value.array[3].to_string());
+                    }
+                    CommandType::Get => {
+                        if value.array.len() != 4 {
+                            stream
+                                .write_all(
+                                    "-ERR wrong number of arguments for 'get' command\r\n"
+                                        .as_bytes(),
+                                )
+                                .unwrap();
+                            return;
+                        }
 
-                self.handle_set(stream, value.array[3].to_string(), value.array[5].to_string());
-            }
-            "get" => {
-                if value.array.len() != 4 {
-                    stream
-                        .write_all(
-                            "-ERR wrong number of arguments for 'get' command\r\n".as_bytes(),
-                        )
-                        .unwrap();
-                    return;
-                }
+                        self.handle_get(stream, value.array[3].to_string());
+                    }
+                    CommandType::Set => {
+                        if value.array.len() != 6 {
+                            stream
+                                .write_all(
+                                    "-ERR wrong number of arguments for 'set' command\r\n"
+                                        .as_bytes(),
+                                )
+                                .unwrap();
+                            return;
+                        }
 
-                self.handle_get(stream, value.array[3].to_string());
+                        self.handle_set(
+                            stream,
+                            value.array[3].to_string(),
+                            value.array[5].to_string(),
+                        );
+                    }
+                }
             }
-            _ => {}
+            _ => {
+
+                self.handle_error(stream, format!("no command found: {command}"));
+            },
         }
     }
 
@@ -80,5 +106,14 @@ impl<'a, T: Store> CommandHandler<'a, T> {
                 stream.write_all("$-1\r\n".as_bytes()).unwrap();
             }
         }
+    }
+
+    fn handle_error(&mut self, mut stream: TcpStream, message: String) {
+        let mut prefix = String::from("-");
+        prefix.push_str(&message.as_str());
+        prefix.push_str("\r\n");
+        let value_to_write = prefix.as_str();
+
+        stream.write_all(value_to_write.as_bytes()).unwrap();
     }
 }
