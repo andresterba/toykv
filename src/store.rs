@@ -68,8 +68,14 @@ impl Store for MapStore {
 
                 reader.lines().for_each(|line| {
                     let line = line.unwrap();
-                    let kv: Vec<&str> = line.split('=').collect();
-                    self.map.insert(kv[0].to_string(), kv[1].to_string());
+
+                    if line.len() != 0 {
+                        let kv: Vec<&str> = line.split('=').collect();
+
+                        println!("{kv:#?}");
+
+                        self.map.insert(kv[0].to_string(), kv[1].to_string());
+                    }
                 });
             }
             Err(_e) => {
