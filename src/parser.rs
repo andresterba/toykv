@@ -1,9 +1,6 @@
-use std::{
-    io::{BufRead, BufReader},
-    net::TcpStream,
-};
+use std::io::{BufRead, BufReader, Read};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Commands {
     STRING,
     ERROR,
@@ -40,7 +37,9 @@ impl Parser {
     pub fn new() -> Parser {
         Parser {}
     }
-    pub fn parse(self, stream: &TcpStream) -> Value {
+
+    // Use Read trait instead of a real TcpStream here to enable easier testing.
+    pub fn parse<T: Read>(self, stream: T) -> Value {
         let buf_reader = BufReader::new(stream);
 
         let mut array_size: Option<usize> = None;
@@ -79,5 +78,29 @@ impl Parser {
         }
 
         value
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn inputs() {
+        let input = b"*3\r\n$3\r\nset\r\n$5\r\nadmin\r\n$5\r\nandre";
+        let expected: Vec<String> = vec![
+            "$3".to_string(),
+            "set".to_string(),
+            "$5".to_string(),
+            "admin".to_string(),
+            "$5".to_string(),
+            "andre".to_string(),
+        ];
+
+        let parser = Parser {};
+        let answer = parser.parse(&input[..]);
+
+        assert_eq!(Commands::ARRAY, answer.typ);
+        assert_eq!(expected, answer.array);
     }
 }
