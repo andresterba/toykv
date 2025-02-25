@@ -25,48 +25,44 @@ impl<'a, T: Store> CommandHandler<'a, T> {
 
     pub fn handle_command(&mut self, mut stream: TcpStream, command: String, value: parser::Value) {
         let command_variant = CommandType::from_str(command.as_str());
+
         match command_variant {
-            Ok(command) => {
-                match command {
-                    CommandType::Ping => {
-                        self.handle_ping(stream, value.array[3].to_string());
-                    }
-                    CommandType::Get => {
-                        if value.array.len() != 4 {
-                            stream
-                                .write_all(
-                                    "-ERR wrong number of arguments for 'get' command\r\n"
-                                        .as_bytes(),
-                                )
-                                .unwrap();
-                            return;
-                        }
-
-                        self.handle_get(stream, value.array[3].to_string());
-                    }
-                    CommandType::Set => {
-                        if value.array.len() != 6 {
-                            stream
-                                .write_all(
-                                    "-ERR wrong number of arguments for 'set' command\r\n"
-                                        .as_bytes(),
-                                )
-                                .unwrap();
-                            return;
-                        }
-
-                        self.handle_set(
-                            stream,
-                            value.array[3].to_string(),
-                            value.array[5].to_string(),
-                        );
-                    }
+            Ok(command) => match command {
+                CommandType::Ping => {
+                    self.handle_ping(stream, value.array[3].to_string());
                 }
-            }
-            _ => {
+                CommandType::Get => {
+                    if value.array.len() != 4 {
+                        stream
+                            .write_all(
+                                "-ERR wrong number of arguments for 'get' command\r\n".as_bytes(),
+                            )
+                            .unwrap();
+                        return;
+                    }
 
-                self.handle_error(stream, format!("no command found: {command}"));
+                    self.handle_get(stream, value.array[3].to_string());
+                }
+                CommandType::Set => {
+                    if value.array.len() != 6 {
+                        stream
+                            .write_all(
+                                "-ERR wrong number of arguments for 'set' command\r\n".as_bytes(),
+                            )
+                            .unwrap();
+                        return;
+                    }
+
+                    self.handle_set(
+                        stream,
+                        value.array[3].to_string(),
+                        value.array[5].to_string(),
+                    );
+                }
             },
+            _ => {
+                self.handle_error(stream, format!("no command found: {command}"));
+            }
         }
     }
 
