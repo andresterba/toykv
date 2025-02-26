@@ -1,6 +1,6 @@
 pub mod parser;
 
-mod commands;
+mod handler;
 mod store;
 
 use std::net::TcpListener;
@@ -14,7 +14,7 @@ fn main() {
     let mut store = store::MapStore::new();
     store.load();
 
-    let mut command_handler = commands::CommandHandler::new(&mut store);
+    let mut command_handler = handler::CommandHandler::new(&mut store);
 
     println!("server ready to accept connections on {}", SERVER_ADDRESS);
 
@@ -24,6 +24,9 @@ fn main() {
         let value = parser.parse(&stream);
 
         println!("{value:?}");
-        command_handler.handle_command(stream, value.array[1].to_string(), value);
+
+        let command = value.array[0].to_string();
+
+        command_handler.handle_command(stream, command, value);
     }
 }

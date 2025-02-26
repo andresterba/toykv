@@ -9,7 +9,7 @@ pub struct CommandHandler<'a, T: Store> {
 }
 
 #[derive(EnumString, Debug)]
-enum CommandType {
+pub enum CommandType {
     #[strum(ascii_case_insensitive)]
     Ping,
     #[strum(ascii_case_insensitive)]
@@ -29,10 +29,10 @@ impl<'a, T: Store> CommandHandler<'a, T> {
         match command_variant {
             Ok(command) => match command {
                 CommandType::Ping => {
-                    self.handle_ping(stream, value.array[3].to_string());
+                    self.handle_ping(stream, value.array[1].to_string());
                 }
                 CommandType::Get => {
-                    if value.array.len() != 4 {
+                    if value.array.len() != 2 {
                         stream
                             .write_all(
                                 "-ERR wrong number of arguments for 'get' command\r\n".as_bytes(),
@@ -41,10 +41,10 @@ impl<'a, T: Store> CommandHandler<'a, T> {
                         return;
                     }
 
-                    self.handle_get(stream, value.array[3].to_string());
+                    self.handle_get(stream, value.array[1].to_string());
                 }
                 CommandType::Set => {
-                    if value.array.len() != 6 {
+                    if value.array.len() != 3 {
                         stream
                             .write_all(
                                 "-ERR wrong number of arguments for 'set' command\r\n".as_bytes(),
@@ -55,8 +55,8 @@ impl<'a, T: Store> CommandHandler<'a, T> {
 
                     self.handle_set(
                         stream,
-                        value.array[3].to_string(),
-                        value.array[5].to_string(),
+                        value.array[1].to_string(),
+                        value.array[2].to_string(),
                     );
                 }
             },

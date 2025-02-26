@@ -1,5 +1,6 @@
 use std::io::{BufRead, BufReader, Read};
 
+
 #[derive(Debug, PartialEq)]
 pub enum Commands {
     STRING,
@@ -22,9 +23,9 @@ pub struct Value {
 pub fn get_command_type(cmd_typ: &str) -> Commands {
     match cmd_typ {
         "+" => Commands::STRING,
-        "-" => Commands::ERROR,
-        ":" => Commands::INTEGER,
-        "$" => Commands::BULK,
+        // "-" => Commands::ERROR,
+        // ":" => Commands::INTEGER,
+        // "$" => Commands::BULK,
         "*" => Commands::ARRAY,
         _ => panic!("Invalid command type"),
     }
@@ -69,7 +70,12 @@ impl Parser {
             } else {
                 counter += 1;
 
-                value.array.push(line);
+                println!("{line}");
+
+                // Skip unnesesarry size indicators during array construction.
+                if !line.starts_with("$") {
+                    value.array.push(line);
+                }
             }
 
             if array_size.unwrap() == counter {
@@ -89,11 +95,24 @@ mod tests {
     fn inputs() {
         let input = b"*3\r\n$3\r\nset\r\n$5\r\nadmin\r\n$5\r\nandre";
         let expected: Vec<String> = vec![
-            "$3".to_string(),
             "set".to_string(),
-            "$5".to_string(),
             "admin".to_string(),
-            "$5".to_string(),
+            "andre".to_string(),
+        ];
+
+        let parser = Parser {};
+        let answer = parser.parse(&input[..]);
+
+        assert_eq!(Commands::ARRAY, answer.typ);
+        assert_eq!(expected, answer.array);
+    }
+
+    #[test]
+    fn ping() {
+        let input = b"*3\r\n$3\r\nset\r\n$5\r\nadmin\r\n$5\r\nandre";
+        let expected: Vec<String> = vec![
+            "set".to_string(),
+            "admin".to_string(),
             "andre".to_string(),
         ];
 
