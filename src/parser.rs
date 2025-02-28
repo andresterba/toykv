@@ -1,6 +1,5 @@
 use std::io::{BufRead, BufReader, Read};
 
-
 #[derive(Debug, PartialEq)]
 pub enum Commands {
     STRING,
@@ -43,42 +42,32 @@ impl Parser {
     pub fn parse<T: Read>(self, stream: T) -> Value {
         let buf_reader = BufReader::new(stream);
 
-        let mut array_size: Option<usize> = None;
-        let mut counter = 0;
         let mut value = Value {
             typ: Commands::UNKNOWN,
             array: vec![],
         };
 
-        let it = buf_reader.lines().map(|line| line.unwrap());
+        let mut it = buf_reader.lines().map(|line| line.unwrap());
+        let first_line = it.next().unwrap();
+
+        // determine command type
+        let (cmd_type, size) = first_line.split_at(1);
+        let size = size.parse::<usize>().unwrap();
+
+        value.typ = get_command_type(cmd_type);
+        value.array = Vec::with_capacity(size);
+
+        let mut counter = 0;
 
         for line in it {
-            if array_size.is_none() {
-                // determine command type
-                let (cmd_type, size) = line.split_at(1);
+            // Skip unnecessary size indicators during array construction.
+            if !line.starts_with("$") {
+                value.array.push(line);
 
-                value.typ = get_command_type(cmd_type);
-
-                // we double the size here as each value is always in the format:
-                // $5 hello
-                // $5: string with size of 5 will follow
-                // hello: the actual value
-                let size = size.parse::<usize>().unwrap() * 2;
-
-                array_size = Some(size);
-                value.array = Vec::with_capacity(size);
-            } else {
                 counter += 1;
-
-                println!("{line}");
-
-                // Skip unnesesarry size indicators during array construction.
-                if !line.starts_with("$") {
-                    value.array.push(line);
-                }
             }
 
-            if array_size.unwrap() == counter {
+            if size == counter {
                 break;
             }
         }
@@ -92,34 +81,39 @@ mod tests {
     use super::*;
 
     #[test]
-    fn inputs() {
+    fn parse_set() {
         let input = b"*3\r\n$3\r\nset\r\n$5\r\nadmin\r\n$5\r\nandre";
-        let expected: Vec<String> = vec![
-            "set".to_string(),
-            "admin".to_string(),
-            "andre".to_string(),
-        ];
+        let expected: Vec<String> =
+            vec!["set".to_string(), "admin".to_string(), "andre".to_string()];
 
         let parser = Parser {};
-        let answer = parser.parse(&input[..]);
+        let result = parser.parse(&input[..]);
 
-        assert_eq!(Commands::ARRAY, answer.typ);
-        assert_eq!(expected, answer.array);
+        assert_eq!(Commands::ARRAY, result.typ);
+        assert_eq!(expected, result.array);
     }
 
     #[test]
-    fn ping() {
-        let input = b"*3\r\n$3\r\nset\r\n$5\r\nadmin\r\n$5\r\nandre";
-        let expected: Vec<String> = vec![
-            "set".to_string(),
-            "admin".to_string(),
-            "andre".to_string(),
-        ];
+    fn parse_get() {
+        let input = b"*2\r\n$3\r\nget\r\n$5\r\nadmin";
+        let expected: Vec<String> = vec!["get".to_string(), "admin".to_string()];
 
         let parser = Parser {};
-        let answer = parser.parse(&input[..]);
+        let result = parser.parse(&input[..]);
 
-        assert_eq!(Commands::ARRAY, answer.typ);
-        assert_eq!(expected, answer.array);
+        assert_eq!(Commands::ARRAY, result.typ);
+        assert_eq!(expected, result.array);
+    }
+
+    #[test]
+    fn parse_ping() {
+        let input = b"*2\r\n$4\r\nping\r\n$5\r\nhello";
+        let expected: Vec<String> = vec!["ping".to_string(), "hello".to_string()];
+
+        let parser = Parser {};
+        let result = parser.parse(&input[..]);
+
+        assert_eq!(Commands::ARRAY, result.typ);
+        assert_eq!(expected, result.array);
     }
 }
