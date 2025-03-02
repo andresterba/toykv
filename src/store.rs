@@ -5,14 +5,13 @@ use std::{
     path::Path,
 };
 
-const FILE_NAME: &str = "aof.txt";
-
 pub struct MapStore {
+    filename: String,
     map: HashMap<String, String>,
 }
 
 pub trait Store {
-    fn new() -> MapStore;
+    fn new(file_name: String) -> MapStore;
 
     fn set(&mut self, key: String, value: String);
     fn get(&self, key: String) -> Option<&String>;
@@ -22,9 +21,10 @@ pub trait Store {
 }
 
 impl Store for MapStore {
-    fn new() -> MapStore {
+    fn new(file_name: String) -> MapStore {
         MapStore {
             map: HashMap::new(),
+            filename: file_name,
         }
     }
 
@@ -41,7 +41,7 @@ impl Store for MapStore {
 
     fn persist(&self, key: String, value: String) {
         let kv_pair = format!("{}={}", key, value);
-        let file = OpenOptions::new().write(true).append(true).open(FILE_NAME);
+        let file = OpenOptions::new().write(true).append(true).open(&self.filename);
 
         match file {
             Ok(mut file) => {
@@ -50,7 +50,7 @@ impl Store for MapStore {
                 }
             }
             Err(_e) => {
-                let path = Path::new(FILE_NAME);
+                let path = Path::new(&self.filename);
                 let mut file = File::create(&path).expect("couldn't create file");
                 if let Err(e) = writeln!(file, "{}", kv_pair) {
                     eprintln!("Couldn't write to file: {}", e);
@@ -60,7 +60,7 @@ impl Store for MapStore {
     }
 
     fn load(&mut self) {
-        let file = File::open(FILE_NAME);
+        let file = File::open(&self.filename);
 
         match file {
             Ok(file) => {
@@ -87,22 +87,38 @@ impl Store for MapStore {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use super::*;
+
+    fn cleanup() {
+        let path = Path::new("test-file.txt");
+
+        match fs::remove_file(path) {
+            Ok(_) => {},
+            Err(_) => {
+                panic!("failed to clean up test artifacts")
+            },
+            }
+
+    }
 
     #[test]
     fn test_1() {
-        let mut store = MapStore::new();
+        let mut store = MapStore::new("test-file.txt".to_string());
         store.set("key".to_string(), "value".to_string());
         let value = store.get("key".to_string());
         assert_eq!(value, Some(&"value".to_string()));
+        cleanup();
     }
 
     #[test]
     fn test_2() {
-        let mut store = MapStore::new();
+        let mut store = MapStore::new("test-file.txt".to_string());
         store.set("key".to_string(), "value".to_string());
         store.set("key2".to_string(), "value2".to_string());
         let value = store.get("key2".to_string());
         assert_eq!(value, Some(&"value2".to_string()));
+        cleanup();
     }
 }
