@@ -3,9 +3,9 @@ use std::io::{BufRead, BufReader, Read};
 #[derive(Debug, PartialEq)]
 pub enum Commands {
     STRING,
-    ERROR,
-    INTEGER,
-    BULK,
+    // ERROR,
+    // INTEGER,
+    // BULK,
     ARRAY,
     UNKNOWN,
 }
@@ -67,6 +67,9 @@ impl Parser {
                 counter += 1;
             }
 
+            // We already know the size of the recieved payload due to the
+            // protocol. Therefore we can stop reading once we reached to expected
+            // amount of parameters.
             if size == counter {
                 break;
             }

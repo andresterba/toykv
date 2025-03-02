@@ -1,16 +1,14 @@
-mod parser;
-mod handler;
-mod store;
 mod config;
+mod handler;
+mod parser;
+mod store;
 
 use std::net::TcpListener;
 use store::Store;
 
-const SERVER_ADDRESS: &str = "127.0.0.1:6379";
-
 fn main() {
     let config = config::get_config();
-    let listener = TcpListener::bind(SERVER_ADDRESS).unwrap();
+    let listener = TcpListener::bind(&config.server_address).unwrap();
     let parser = parser::Parser::new();
 
     let mut store = store::MapStore::new(config.file_name);
@@ -18,7 +16,10 @@ fn main() {
 
     let mut command_handler = handler::CommandHandler::new(&mut store);
 
-    println!("server ready to accept connections on {}", SERVER_ADDRESS);
+    println!(
+        "server ready to accept connections on {}",
+        config.server_address
+    );
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
